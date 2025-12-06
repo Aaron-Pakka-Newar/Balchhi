@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import CreateListingForm from "@/components/create-listing-form"
@@ -14,7 +14,13 @@ export default function CreateListingPage() {
   const router = useRouter()
   const [listingType, setListingType] = useState<'lost' | 'found' | null>(null)
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/login")
+    }
+  }, [isLoading, user, router])
+
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#D4D4D4]">
         <div className="text-center">
@@ -23,11 +29,6 @@ export default function CreateListingPage() {
         </div>
       </div>
     )
-  }
-
-  if (!user) {
-    router.push("/login")
-    return null
   }
 
   return (

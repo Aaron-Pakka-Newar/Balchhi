@@ -11,6 +11,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useAuth, type UserRole } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
+import { Eye, EyeOff } from "lucide-react"
 
 const signupSchema = z
   .object({
@@ -33,6 +34,8 @@ export default function SignupForm() {
   const { signup } = useAuth()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -136,12 +139,21 @@ export default function SignupForm() {
               <FormItem>
                 <FormLabel className="text-[#2B2B2B] font-medium">Password</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="••••••••" 
-                    type="password" 
-                    className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B]" 
-                    {...field} 
-                  />
+                  <div className="relative">
+                    <Input 
+                      placeholder="••••••••" 
+                      type={showPassword ? "text" : "password"} 
+                      className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B] pr-10" 
+                      {...field} 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2B2B2B]/40 hover:text-[#2B2B2B] transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage className="text-red-600" />
               </FormItem>
@@ -155,12 +167,21 @@ export default function SignupForm() {
               <FormItem>
                 <FormLabel className="text-[#2B2B2B] font-medium">Confirm</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="••••••••" 
-                    type="password" 
-                    className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B]" 
-                    {...field} 
-                  />
+                  <div className="relative">
+                    <Input 
+                      placeholder="••••••••" 
+                      type={showConfirmPassword ? "text" : "password"} 
+                      className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B] pr-10" 
+                      {...field} 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2B2B2B]/40 hover:text-[#2B2B2B] transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage className="text-red-600" />
               </FormItem>

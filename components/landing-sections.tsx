@@ -386,7 +386,7 @@ export function DeliverySection() {
             className="text-3xl md:text-4xl text-white mb-4"
             style={{ fontFamily: "'Calmingly', cursive" }}
           >
-            Safe Handover & Delivery
+            Safe Handover <span style={{ fontFamily: "system-ui, sans-serif" }}>&</span> Delivery
           </h2>
           <p className="text-lg text-[#B3B3B3] max-w-2xl mx-auto">
             Multiple options to ensure your items are returned safely

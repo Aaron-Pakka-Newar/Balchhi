@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
 import { useAuth } from "@/contexts/auth-context"
-import { Mail, Lock, ArrowRight } from "lucide-react"
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 
 const loginSchema = z.object({
@@ -24,6 +24,7 @@ export default function LoginForm() {
   const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -96,10 +97,17 @@ export default function LoginForm() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#2B2B2B]/40" />
                   <Input 
                     placeholder="Enter your password" 
-                    type="password" 
-                    className="pl-10 h-12 border-[#D4D4D4] focus:border-[#2B2B2B]"
+                    type={showPassword ? "text" : "password"} 
+                    className="pl-10 pr-10 h-12 border-[#D4D4D4] focus:border-[#2B2B2B]"
                     {...field} 
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2B2B2B]/40 hover:text-[#2B2B2B] transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
               </FormControl>
               <FormMessage />
