@@ -40,7 +40,7 @@ export default function OrganizationPage() {
       <main className="min-h-screen flex flex-col bg-[#e0e2d5]">
         <Header />
 
-        <div className="flex-1 py-8 px-4 md:px-8">
+        <div className="flex-1 pt-20 py-8 px-4 md:px-8">
           <div className="max-w-4xl mx-auto">
             <div className="text-center py-16">
               <div className="w-20 h-20 rounded-2xl bg-[#6db8bb]/20 flex items-center justify-center mx-auto mb-6">
@@ -66,7 +66,7 @@ export default function OrganizationPage() {
     <main className="min-h-screen flex flex-col bg-[#e0e2d5]">
       <Header />
 
-      <div className="flex-1 py-8 px-4 md:px-8">
+      <div className="flex-1 pt-20 py-8 px-4 md:px-8">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="flex items-start gap-4">
             <div className="w-16 h-16 rounded-2xl bg-[#6db8bb]/20 flex items-center justify-center flex-shrink-0">

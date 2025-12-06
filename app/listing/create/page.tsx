@@ -35,7 +35,7 @@ export default function CreateListingPage() {
       <Header />
 
       {/* Hero section */}
-      <div className="bg-[#6db8bb] pt-24 pb-12 px-6 md:px-8">
+      <div className="bg-[#6db8bb] pt-32 pb-12 px-6 md:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-[#10375d] mb-4">
             Report an Item

@@ -36,19 +36,19 @@ export default function ListingDetailPage() {
     <main className="min-h-screen flex flex-col bg-[#e0e2d5]">
       <Header />
 
-      <div className="flex-1 py-8 px-4 md:px-8">
-        <div className="max-w-5xl mx-auto">
+      <div className="flex-1 pt-16 py-8 px-4 md:px-8">
+        <div className="max-w-full mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8">
             {/* Main content */}
             <div className="md:col-span-2 space-y-6">
-              <div className="relative rounded-2xl overflow-hidden bg-[#6db8bb]/10 h-96 shadow-lg">
+              <div className="relative rounded-2xl shadow-lg overflow-hidden group">
                 <img
                   src={listing.image || "/placeholder.svg"}
                   alt={listing.title}
-                  className="w-full h-full object-cover"
+                  className="w-full aspect-video object-cover rounded-2xl"
                 />
                 <Badge 
-                  className={`absolute top-4 right-4 px-4 py-1.5 text-sm font-semibold ${
+                  className={`absolute top-4 right-4 px-4 py-1.5 text-sm font-semibold z-20 ${
                     listing.type === "lost" 
                       ? "bg-red-500 text-white border-0" 
                       : "bg-[#05647a] text-[#e0e2d5] border-0"
@@ -56,7 +56,7 @@ export default function ListingDetailPage() {
                 >
                   {listing.type === "lost" ? "Lost Item" : "Found Item"}
                 </Badge>
-                <div className="absolute bottom-4 right-4 flex gap-2">
+                <div className="absolute bottom-4 right-4 flex gap-2 z-20">
                   <Button size="icon" variant="secondary" className="bg-white/90 hover:bg-white text-[#10375d]">
                     <Share2 className="w-4 h-4" />
                   </Button>

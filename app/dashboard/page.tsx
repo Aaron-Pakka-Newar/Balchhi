@@ -33,12 +33,12 @@ export default function DashboardPage() {
     <main className="min-h-screen flex flex-col bg-[#e0e2d5]">
       <Header />
 
-      <div className="flex-1 py-8 px-4 md:px-8">
+      <div className="flex-1 pt-20 py-8 px-4 md:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
             <div>
               <h1 className="text-3xl font-bold text-[#10375d]">Dashboard</h1>
-              <p className="text-[#05647a] mt-1">Welcome back, {user.name}</p>
+              <p className="text-[#05647a] mt-2">Welcome back, {user.name}</p>
             </div>
             <CreateListingButton />
           </div>

@@ -61,11 +61,11 @@ export default function Header() {
   return (
     <header className={`fixed top-0 z-50 w-full transition-all duration-200 ${headerBg}`}>
       <div className="max-w-6xl mx-auto px-6 md:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <span 
-              className={`text-3xl tracking-tight font-bold transition-colors duration-200 ${textColor}`}
+              className={`text-2xl tracking-tight font-bold transition-colors duration-200 ${textColor}`}
               style={{ fontFamily: 'var(--font-display)' }}
             >
               Balchhi
@@ -73,7 +73,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6">
             <Link 
               href="/browse" 
               className={`transition-colors font-medium ${textColorMuted}`}
