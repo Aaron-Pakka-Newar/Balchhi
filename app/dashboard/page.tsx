@@ -14,6 +14,13 @@ export default function DashboardPage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
+  // useEffect must be called before any conditional returns
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, isLoading, router])
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#D4D4D4]">
@@ -24,12 +31,6 @@ export default function DashboardPage() {
       </div>
     )
   }
-
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login")
-    }
-  }, [user, isLoading, router])
 
   if (!user) {
     return (
@@ -46,7 +47,7 @@ export default function DashboardPage() {
     <main className="min-h-screen flex flex-col bg-[#FFFFFF]">
       <Header />
 
-      <div className="flex-1 py-8 px-4 md:px-8">
+      <div className="flex-1 pt-24 pb-8 px-4 md:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
             <div>
