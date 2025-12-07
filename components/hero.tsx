@@ -303,7 +303,7 @@ export default function Hero() {
               className="text-xs md:text-sm lg:text-base text-[#2B2B2B]/60 mb-8 max-w-md mx-auto leading-relaxed italic"
             >
               Nepal's trusted platform to reunite people with their belongings.
-              From Kathmandu to Pokhara. We connect finders to seekers.
+              We connect finders to seekers.
             </motion.p>
 
             {/* CTA Buttons */}

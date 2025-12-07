@@ -1,5 +1,6 @@
 "use client"
 import { useParams } from "next/navigation"
+import { useEffect, useState } from "react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,29 +9,126 @@ import { Button } from "@/components/ui/button"
 import { MapPin, Calendar, User, MessageCircle, Shield, Share2, Flag } from "lucide-react"
 import ClaimItemDialog from "@/components/claim-item-dialog"
 import { useAuth } from "@/contexts/auth-context"
+import { supabase } from "@/lib/supabase"
+
+interface ListingData {
+  id: string
+  title: string
+  type: "lost" | "found"
+  description: string
+  location: {
+    province?: string
+    district?: string
+    municipality?: string
+    landmark?: string
+  } | null
+  date_lost_found: string
+  status: string
+  view_count: number
+  is_verified_listing: boolean
+  user_id: string
+  category?: { name: string } | null
+  user?: { id: string; name: string; avatar_url?: string; is_verified?: boolean } | null
+  media?: { url: string; is_primary?: boolean }[]
+}
 
 export default function ListingDetailPage() {
   const params = useParams()
-  const listingId = params.id
+  const listingId = params.id as string
   const { user } = useAuth()
+  const [listing, setListing] = useState<ListingData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const listing = {
-    id: listingId,
-    title: "Silver Wedding Ring",
-    type: "lost",
-    category: "Jewelry",
-    location: "Thamel, Kathmandu",
-    date: "2025-12-01",
-    description: "Lost near Swayambhunath on Monday evening. Gold band with small diamond. Very sentimental value.",
-    image: "/placeholder.svg?key=2s1np",
-    status: "active",
-    postedBy: "Ramesh Sharma",
-    posterId: "user123",
-    contact: "ramesh@example.com",
-    views: 245,
+  useEffect(() => {
+    async function fetchListing() {
+      if (!listingId) return
+      
+      setIsLoading(true)
+      setError(null)
+      
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('items')
+          .select(`
+            *,
+            category:categories(name),
+            user:profiles(id, name, avatar_url, is_verified),
+            media:item_media(url, is_primary)
+          `)
+          .eq('id', listingId)
+          .single()
+
+        if (fetchError) {
+          console.error('Error fetching listing:', fetchError)
+          setError('Failed to load listing')
+          return
+        }
+
+        setListing(data as ListingData)
+        
+        // Increment view count
+        await supabase
+          .from('items')
+          .update({ view_count: (data?.view_count || 0) + 1 })
+          .eq('id', listingId)
+          
+      } catch (err) {
+        console.error('Error:', err)
+        setError('Failed to load listing')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchListing()
+  }, [listingId])
+
+  // Format location for display
+  const formatLocation = (location: ListingData['location']) => {
+    if (!location) return "Unknown location"
+    const parts = [location.municipality, location.district, location.province].filter(Boolean)
+    return parts.join(", ") || "Unknown location"
   }
 
-  const isOwner = user?.id === listing.posterId
+  // Get primary image
+  const getImage = () => {
+    if (!listing?.media?.length) return "/placeholder.svg"
+    const primary = listing.media.find(m => m.is_primary)
+    return primary?.url || listing.media[0]?.url || "/placeholder.svg"
+  }
+
+  const isOwner = user?.id === listing?.user_id
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen flex flex-col bg-[#FFFFFF]">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-[#2B2B2B]"></div>
+            <p className="mt-4 text-[#2B2B2B]/60">Loading listing...</p>
+          </div>
+        </div>
+        <Footer />
+      </main>
+    )
+  }
+
+  if (error || !listing) {
+    return (
+      <main className="min-h-screen flex flex-col bg-[#FFFFFF]">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-[#2B2B2B] mb-2">Listing not found</h2>
+            <p className="text-[#2B2B2B]/60">{error || "This listing may have been removed or doesn't exist."}</p>
+          </div>
+        </div>
+        <Footer />
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen flex flex-col bg-[#FFFFFF]">
@@ -43,7 +141,7 @@ export default function ListingDetailPage() {
             <div className="md:col-span-2 space-y-6">
               <div className="relative rounded-2xl overflow-hidden bg-[#D4D4D4]/10 h-96 shadow-lg">
                 <img
-                  src={listing.image || "/placeholder.svg"}
+                  src={getImage()}
                   alt={listing.title}
                   className="w-full h-full object-cover"
                 />
@@ -71,9 +169,9 @@ export default function ListingDetailPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-2xl text-[#2B2B2B]">{listing.title}</CardTitle>
-                      <CardDescription className="text-[#2B2B2B] mt-1">{listing.category}</CardDescription>
+                      <CardDescription className="text-[#2B2B2B] mt-1">{listing.category?.name || "Other"}</CardDescription>
                     </div>
-                    <span className="text-sm text-[#2B2B2B]">{listing.views} views</span>
+                    <span className="text-sm text-[#2B2B2B]">{listing.view_count || 0} views</span>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -84,13 +182,13 @@ export default function ListingDetailPage() {
                       <div className="w-8 h-8 rounded-lg bg-[#D4D4D4]/20 flex items-center justify-center">
                         <MapPin className="w-4 h-4 text-[#2B2B2B]" />
                       </div>
-                      <span className="text-[#2B2B2B]">{listing.location}</span>
+                      <span className="text-[#2B2B2B]">{formatLocation(listing.location)}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm">
                       <div className="w-8 h-8 rounded-lg bg-[#D4D4D4]/20 flex items-center justify-center">
                         <Calendar className="w-4 h-4 text-[#2B2B2B]" />
                       </div>
-                      <span className="text-[#2B2B2B]">{new Date(listing.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                      <span className="text-[#2B2B2B]">{new Date(listing.date_lost_found).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -105,15 +203,21 @@ export default function ListingDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-[#D4D4D4]/20 flex items-center justify-center">
-                      <User className="w-6 h-6 text-[#2B2B2B]" />
+                    <div className="w-12 h-12 rounded-full bg-[#D4D4D4]/20 flex items-center justify-center overflow-hidden">
+                      {listing.user?.avatar_url ? (
+                        <img src={listing.user.avatar_url} alt={listing.user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-6 h-6 text-[#2B2B2B]" />
+                      )}
                     </div>
                     <div>
-                      <p className="font-semibold text-[#2B2B2B]">{listing.postedBy}</p>
-                      <div className="flex items-center gap-1 text-xs text-[#2B2B2B]">
-                        <Shield className="w-3 h-3" />
-                        <span>Verified Member</span>
-                      </div>
+                      <p className="font-semibold text-[#2B2B2B]">{listing.user?.name || "Anonymous"}</p>
+                      {listing.user?.is_verified && (
+                        <div className="flex items-center gap-1 text-xs text-[#2B2B2B]">
+                          <Shield className="w-3 h-3" />
+                          <span>Verified Member</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 

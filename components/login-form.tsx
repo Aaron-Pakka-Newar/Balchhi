@@ -68,7 +68,7 @@ export default function LoginForm() {
                   <Input 
                     placeholder="your@email.com" 
                     type="email" 
-                    className="pl-10 h-12 border-[#D4D4D4] focus:border-[#2B2B2B]"
+                    className="pl-10 h-12 border-[#D4D4D4] focus:border-[#2B2B2B] placeholder:text-[#2B2B2B]/40"
                     {...field} 
                   />
                 </div>
@@ -98,7 +98,7 @@ export default function LoginForm() {
                   <Input 
                     placeholder="Enter your password" 
                     type={showPassword ? "text" : "password"} 
-                    className="pl-10 pr-10 h-12 border-[#D4D4D4] focus:border-[#2B2B2B]"
+                    className="pl-10 pr-10 h-12 border-[#D4D4D4] focus:border-[#2B2B2B] placeholder:text-[#2B2B2B]/40"
                     {...field} 
                   />
                   <button

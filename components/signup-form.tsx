@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useAuth, type UserRole } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { Eye, EyeOff } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 const signupSchema = z
   .object({
@@ -36,6 +37,8 @@ export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -49,7 +52,76 @@ export default function SignupForm() {
     },
   })
 
+  // Check if email already exists
+  const checkEmailExists = async (email: string) => {
+    if (!email) return
+    setEmailError(null)
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email.toLowerCase())
+        .maybeSingle()
+      
+      if (data) {
+        setEmailError("Email already registered")
+      }
+    } catch (err) {
+      console.error("Error checking email:", err)
+    }
+  }
+
+  // Check if phone already exists
+  const checkPhoneExists = async (phone: string) => {
+    if (!phone || phone.trim() === '') return
+    setPhoneError(null)
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone', phone)
+        .maybeSingle()
+      
+      if (data) {
+        setPhoneError("Phone number already registered")
+      }
+    } catch (err) {
+      console.error("Error checking phone:", err)
+    }
+  }
+
   async function onSubmit(values: SignupFormValues) {
+    // Clear previous errors
+    setEmailError(null)
+    setPhoneError(null)
+    
+    // Check for existing email/phone before submitting
+    const emailCheck = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', values.email.toLowerCase())
+      .maybeSingle()
+    
+    if (emailCheck.data) {
+      setEmailError("Email already registered")
+      return
+    }
+
+    if (values.phone && values.phone.trim() !== '') {
+      const phoneCheck = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone', values.phone)
+        .maybeSingle()
+      
+      if (phoneCheck.data) {
+        setPhoneError("Phone number already registered")
+        return
+      }
+    }
+
     setIsLoading(true)
     try {
       await signup(values.email, values.password, values.name, values.role as UserRole)
@@ -62,11 +134,17 @@ export default function SignupForm() {
     } catch (error) {
       console.error("Signup error:", error)
       const errorMessage = error instanceof Error ? error.message : "Failed to create account. Please try again."
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      })
+      
+      // Check if error is about existing email
+      if (errorMessage.toLowerCase().includes('email') && errorMessage.toLowerCase().includes('already')) {
+        setEmailError("Email already registered")
+      } else {
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -86,7 +164,7 @@ export default function SignupForm() {
               <FormControl>
                 <Input 
                   placeholder="Your full name" 
-                  className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B]" 
+                  className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B] placeholder:text-[#2B2B2B]/40" 
                   {...field} 
                 />
               </FormControl>
@@ -105,11 +183,20 @@ export default function SignupForm() {
                 <Input 
                   placeholder="your@email.com" 
                   type="email" 
-                  className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B]" 
-                  {...field} 
+                  className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B] placeholder:text-[#2B2B2B]/40" 
+                  {...field}
+                  onBlur={(e) => {
+                    field.onBlur()
+                    checkEmailExists(e.target.value)
+                  }}
+                  onChange={(e) => {
+                    field.onChange(e)
+                    setEmailError(null)
+                  }}
                 />
               </FormControl>
               <FormMessage className="text-red-600" />
+              {emailError && <p className="text-sm font-medium text-red-600">{emailError}</p>}
             </FormItem>
           )}
         />
@@ -124,11 +211,20 @@ export default function SignupForm() {
                 <Input 
                   placeholder="+977 98XXXXXXXX" 
                   type="tel" 
-                  className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B]" 
-                  {...field} 
+                  className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B] placeholder:text-[#2B2B2B]/40" 
+                  {...field}
+                  onBlur={(e) => {
+                    field.onBlur()
+                    checkPhoneExists(e.target.value)
+                  }}
+                  onChange={(e) => {
+                    field.onChange(e)
+                    setPhoneError(null)
+                  }}
                 />
               </FormControl>
               <FormMessage className="text-red-600" />
+              {phoneError && <p className="text-sm font-medium text-red-600">{phoneError}</p>}
             </FormItem>
           )}
         />

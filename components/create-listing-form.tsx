@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -36,20 +36,11 @@ interface CreateListingFormProps {
   type?: 'lost' | 'found'
 }
 
-const categories = [
-  { id: "electronics", name: "Electronics", nameNe: "इलेक्ट्रोनिक्स" },
-  { id: "documents", name: "Documents", nameNe: "कागजातहरू" },
-  { id: "jewelry", name: "Jewelry", nameNe: "गहना" },
-  { id: "bags", name: "Bags & Luggage", nameNe: "झोला र सामान" },
-  { id: "wallets", name: "Wallets & Purses", nameNe: "वालेट र पर्स" },
-  { id: "keys", name: "Keys", nameNe: "चाबीहरू" },
-  { id: "pets", name: "Pets", nameNe: "पाल्तु जनावर" },
-  { id: "clothing", name: "Clothing", nameNe: "कपडा" },
-  { id: "books", name: "Books & Stationery", nameNe: "किताब र स्टेशनरी" },
-  { id: "sports", name: "Sports Equipment", nameNe: "खेलकुद सामग्री" },
-  { id: "glasses", name: "Glasses & Eyewear", nameNe: "चश्मा" },
-  { id: "other", name: "Other", nameNe: "अन्य" },
-]
+interface Category {
+  id: string
+  name: string
+  name_ne: string
+}
 
 const provinces = [
   "Koshi Pradesh",
@@ -78,6 +69,33 @@ export default function CreateListingForm({ type = 'lost' }: CreateListingFormPr
   const [images, setImages] = useState<File[]>([])
   const [imageUrls, setImageUrls] = useState<string[]>([])
   const [selectedProvince, setSelectedProvince] = useState("")
+  const [categories, setCategories] = useState<Category[]>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+
+  // Fetch categories from database
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('id, name, name_ne')
+          .order('name')
+        
+        if (error) {
+          console.error('Error fetching categories:', error)
+          return
+        }
+        
+        setCategories(data || [])
+      } catch (error) {
+        console.error('Failed to fetch categories:', error)
+      } finally {
+        setCategoriesLoading(false)
+      }
+    }
+    
+    fetchCategories()
+  }, [])
 
   const form = useForm<ListingFormValues>({
     resolver: zodResolver(listingSchema),
@@ -185,7 +203,7 @@ export default function CreateListingForm({ type = 'lost' }: CreateListingFormPr
       }
 
       alert("Listing created successfully!")
-      router.push("/dashboard")
+      router.push("/browse")
     } catch (error) {
       console.error("Failed to create listing:", error)
       alert(error instanceof Error ? error.message : "Failed to create listing. Please try again.")
@@ -234,9 +252,10 @@ export default function CreateListingForm({ type = 'lost' }: CreateListingFormPr
                 <FormControl>
                   <select
                     {...field}
-                    className="flex h-11 w-full rounded-lg border border-[#2B2B2B]/30 bg-white px-4 py-2 text-base focus:outline-none focus:border-[#2B2B2B] focus:ring-2 focus:ring-[#2B2B2B]/20"
+                    disabled={categoriesLoading}
+                    className="flex h-11 w-full rounded-lg border border-[#2B2B2B]/30 bg-white px-4 py-2 text-base focus:outline-none focus:border-[#2B2B2B] focus:ring-2 focus:ring-[#2B2B2B]/20 disabled:bg-gray-100"
                   >
-                    <option value="">Select a category</option>
+                    <option value="">{categoriesLoading ? "Loading categories..." : "Select a category"}</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name}

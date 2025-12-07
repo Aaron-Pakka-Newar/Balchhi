@@ -121,7 +121,7 @@ export default function BrowsePage() {
               {isLoading ? (
                 <div className="text-center py-16">
                   <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-[#2B2B2B]"></div>
-                  <p className="mt-4 text-[#2B2B2B]/60">Searching...</p>
+                  <p className="mt-4 text-[#2B2B2B]/60">Loading items...</p>
                 </div>
               ) : filteredResults.length === 0 ? (
                 <Card className="bg-white border-[#D4D4D4]">
@@ -131,7 +131,7 @@ export default function BrowsePage() {
                     </div>
                     <h3 className="text-xl font-bold text-[#2B2B2B] mb-2">No items found</h3>
                     <p className="text-[#2B2B2B]/60 mb-6">
-                      {query ? `No items match "${query}"` : 'Start by searching for an item'}
+                      {query ? `No items match "${query}"` : 'Be the first to report a lost or found item!'}
                     </p>
                     <Link href="/listing/create">
                       <Button className="bg-[#2B2B2B] hover:bg-[#2B2B2B]/90 text-white">
