@@ -6,6 +6,7 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { VerificationProvider } from "@/contexts/verification-context"
 import { OrganizationProvider } from "@/contexts/organization-context"
 import { SearchProvider } from "@/contexts/search-context"
+import { PageTransitionProvider } from "@/components/page-transition"
 import "./globals.css"
 import { Suspense } from "react"
 
@@ -66,7 +67,11 @@ export default function RootLayout({
           <AuthProvider>
             <VerificationProvider>
               <OrganizationProvider>
-                <SearchProvider>{children}</SearchProvider>
+                <SearchProvider>
+                  <PageTransitionProvider>
+                    {children}
+                  </PageTransitionProvider>
+                </SearchProvider>
               </OrganizationProvider>
             </VerificationProvider>
           </AuthProvider>

@@ -2,10 +2,12 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Menu, LogOut, X, User } from "lucide-react"
+import { Menu, LogOut, X, User, MessageCircle, Bell } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter, usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
+import { TransitionLink } from "@/components/page-transition"
+import NotificationsDropdown from "@/components/notifications-dropdown"
 
 export default function Header() {
   const { user, logout } = useAuth()
@@ -63,42 +65,53 @@ export default function Header() {
       <div className="max-w-6xl mx-auto px-6 md:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
+          <TransitionLink href="/" className="flex items-center">
             <span 
               className={`text-3xl tracking-tight font-bold transition-colors duration-200 ${textColor}`}
               style={{ fontFamily: 'var(--font-display)' }}
             >
               Balchhi
             </span>
-          </Link>
+          </TransitionLink>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link 
+            <TransitionLink 
               href="/browse" 
               className={`transition-colors font-medium ${textColorMuted}`}
             >
               Browse
-            </Link>
-            <Link 
+            </TransitionLink>
+            <TransitionLink 
               href="/listing/create" 
               className={`transition-colors font-medium ${textColorMuted}`}
             >
               Report Item
-            </Link>
-            <Link 
+            </TransitionLink>
+            <TransitionLink 
               href="/dashboard/organization" 
               className={`transition-colors font-medium ${textColorMuted}`}
             >
               Organizations
-            </Link>
+            </TransitionLink>
           </nav>
 
           {/* Desktop Auth */}
           <div className="hidden md:flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
-                <Link href="/dashboard">
+                <TransitionLink href="/messages">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`${textColor} ${hoverBg} transition-colors duration-200`}
+                    title="Messages"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                  </Button>
+                </TransitionLink>
+                <NotificationsDropdown textColor={textColor} hoverBg={hoverBg} />
+                <TransitionLink href="/dashboard">
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -107,7 +120,7 @@ export default function Header() {
                     <User className="w-4 h-4" />
                     {user.name}
                   </Button>
-                </Link>
+                </TransitionLink>
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -119,13 +132,13 @@ export default function Header() {
                 </Button>
               </div>
             ) : (
-              <Link href="/login">
+              <TransitionLink href="/login">
                 <Button 
                   className={`font-semibold px-6 transition-colors duration-200 ${buttonBg}`}
                 >
                   Sign In
                 </Button>
-              </Link>
+              </TransitionLink>
             )}
           </div>
 
@@ -144,39 +157,47 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className={`md:hidden py-4 border-t ${borderColor} ${isInDarkSection ? 'bg-[#2B2B2B]/95' : 'bg-white/95'} backdrop-blur-sm -mx-6 px-6`}>
             <nav className="flex flex-col gap-2">
-              <Link 
+              <TransitionLink 
                 href="/browse" 
-                className={`${textColor} ${hoverBg} px-4 py-3 rounded-lg transition-colors`}
+                className={`${textColor} ${hoverBg} px-4 py-3 rounded-lg transition-colors block`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Browse
-              </Link>
-              <Link 
+              </TransitionLink>
+              <TransitionLink 
                 href="/listing/create" 
-                className={`${textColor} ${hoverBg} px-4 py-3 rounded-lg transition-colors`}
+                className={`${textColor} ${hoverBg} px-4 py-3 rounded-lg transition-colors block`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Report Item
-              </Link>
-              <Link 
+              </TransitionLink>
+              <TransitionLink 
                 href="/dashboard/organization" 
-                className={`${textColor} ${hoverBg} px-4 py-3 rounded-lg transition-colors`}
+                className={`${textColor} ${hoverBg} px-4 py-3 rounded-lg transition-colors block`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Organizations
-              </Link>
+              </TransitionLink>
               
               <div className={`pt-4 border-t ${borderColor} mt-2`}>
                 {user ? (
                   <div className="flex flex-col gap-2">
-                    <Link 
+                    <TransitionLink 
+                      href="/messages"
+                      className={`${textColor} ${hoverBg} px-4 py-3 rounded-lg transition-colors flex items-center gap-2`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Messages
+                    </TransitionLink>
+                    <TransitionLink 
                       href="/dashboard"
                       className={`${textColor} ${hoverBg} px-4 py-3 rounded-lg transition-colors flex items-center gap-2`}
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <User className="w-4 h-4" />
                       Dashboard
-                    </Link>
+                    </TransitionLink>
                     <button
                       onClick={() => {
                         handleLogout()
@@ -189,14 +210,14 @@ export default function Header() {
                     </button>
                   </div>
                 ) : (
-                  <Link 
+                  <TransitionLink 
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Button className={`w-full font-semibold transition-colors duration-200 ${buttonBg}`}>
                       Sign In
                     </Button>
-                  </Link>
+                  </TransitionLink>
                 )}
               </div>
             </nav>

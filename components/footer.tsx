@@ -1,4 +1,6 @@
-import Link from "next/link"
+"use client"
+
+import { TransitionLink } from "@/components/page-transition"
 import { Facebook, Twitter, Instagram } from "lucide-react"
 
 export default function Footer() {
@@ -8,14 +10,14 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           {/* Brand */}
           <div className="md:col-span-1">
-            <Link href="/" className="flex items-center gap-3 mb-4">
+            <TransitionLink href="/" className="flex items-center gap-3 mb-4">
               <span 
                 className="text-white text-2xl"
                 style={{ fontFamily: "'Calmingly', cursive" }}
               >
                 Balchhi
               </span>
-            </Link>
+            </TransitionLink>
             <p className="text-[#B3B3B3] text-sm leading-relaxed mb-6">
               Nepal's trusted platform for reuniting people with their lost belongings. 
               Connect, verify, and recover.
@@ -47,24 +49,24 @@ export default function Footer() {
             <h4 className="font-semibold mb-6 text-white">Platform</h4>
             <ul className="space-y-3">
               <li>
-                <Link href="/browse" className="text-[#B3B3B3] hover:text-white transition-colors">
+                <TransitionLink href="/browse" className="text-[#B3B3B3] hover:text-white transition-colors">
                   Browse Listings
-                </Link>
+                </TransitionLink>
               </li>
               <li>
-                <Link href="/listing/create" className="text-[#B3B3B3] hover:text-white transition-colors">
+                <TransitionLink href="/listing/create" className="text-[#B3B3B3] hover:text-white transition-colors">
                   Report Item
-                </Link>
+                </TransitionLink>
               </li>
               <li>
-                <Link href="/dashboard" className="text-[#B3B3B3] hover:text-white transition-colors">
+                <TransitionLink href="/dashboard" className="text-[#B3B3B3] hover:text-white transition-colors">
                   My Dashboard
-                </Link>
+                </TransitionLink>
               </li>
               <li>
-                <Link href="/dashboard/organization" className="text-[#B3B3B3] hover:text-white transition-colors">
+                <TransitionLink href="/dashboard/organization" className="text-[#B3B3B3] hover:text-white transition-colors">
                   For Organizations
-                </Link>
+                </TransitionLink>
               </li>
             </ul>
           </div>
@@ -74,24 +76,24 @@ export default function Footer() {
             <h4 className="font-semibold mb-6 text-white">Support</h4>
             <ul className="space-y-3">
               <li>
-                <Link href="/help" className="text-[#B3B3B3] hover:text-white transition-colors">
+                <TransitionLink href="/help" className="text-[#B3B3B3] hover:text-white transition-colors">
                   Help Center
-                </Link>
+                </TransitionLink>
               </li>
               <li>
-                <Link href="/safety" className="text-[#B3B3B3] hover:text-white transition-colors">
+                <TransitionLink href="/safety" className="text-[#B3B3B3] hover:text-white transition-colors">
                   Safety Tips
-                </Link>
+                </TransitionLink>
               </li>
               <li>
-                <Link href="/contact" className="text-[#B3B3B3] hover:text-white transition-colors">
+                <TransitionLink href="/contact" className="text-[#B3B3B3] hover:text-white transition-colors">
                   Contact Us
-                </Link>
+                </TransitionLink>
               </li>
               <li>
-                <Link href="/faq" className="text-[#B3B3B3] hover:text-white transition-colors">
+                <TransitionLink href="/faq" className="text-[#B3B3B3] hover:text-white transition-colors">
                   FAQ
-                </Link>
+                </TransitionLink>
               </li>
             </ul>
           </div>
@@ -101,19 +103,19 @@ export default function Footer() {
             <h4 className="font-semibold mb-6 text-white">Legal</h4>
             <ul className="space-y-3">
               <li>
-                <Link href="/privacy" className="text-[#B3B3B3] hover:text-white transition-colors">
+                <TransitionLink href="/privacy" className="text-[#B3B3B3] hover:text-white transition-colors">
                   Privacy Policy
-                </Link>
+                </TransitionLink>
               </li>
               <li>
-                <Link href="/terms" className="text-[#B3B3B3] hover:text-white transition-colors">
+                <TransitionLink href="/terms" className="text-[#B3B3B3] hover:text-white transition-colors">
                   Terms of Service
-                </Link>
+                </TransitionLink>
               </li>
               <li>
-                <Link href="/cookies" className="text-[#B3B3B3] hover:text-white transition-colors">
+                <TransitionLink href="/cookies" className="text-[#B3B3B3] hover:text-white transition-colors">
                   Cookie Policy
-                </Link>
+                </TransitionLink>
               </li>
             </ul>
           </div>

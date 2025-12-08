@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { motion, useReducedMotion } from "framer-motion"
 import { ArrowRight, Building2, ChevronDown } from "lucide-react"
-import Link from "next/link"
+import { TransitionLink } from "@/components/page-transition"
 import { useEffect, useState, useRef } from "react"
 import { CatchableFloatingItem } from "@/components/catchable-item"
 
@@ -313,7 +313,7 @@ export default function Hero() {
               transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
               className="flex flex-col sm:flex-row gap-4 justify-center"
             >
-              <Link href="/browse">
+              <TransitionLink href="/browse">
                 <Button 
                   size="lg" 
                   className="bg-[#2B2B2B] hover:bg-[#2B2B2B]/90 text-white text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
@@ -321,7 +321,7 @@ export default function Hero() {
                   Start finding
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
-              </Link>
+              </TransitionLink>
             </motion.div>
 
             {/* Animated Water Scene - uniform dark color */}

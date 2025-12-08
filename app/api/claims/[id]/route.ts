@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient, createAdminClient } from '@/lib/supabase'
+import { createServerClientWithAuth, createAdminClient } from '@/lib/supabase'
 import { canUserPerformAction } from '@/lib/org-rbac'
 
 // PATCH /api/claims/[id] - Update claim status
@@ -7,7 +7,13 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = createServerClient()
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const token = authHeader.replace('Bearer ', '')
+  const supabase = createServerClientWithAuth(token) as any
   const { id } = await params
 
   try {
@@ -47,7 +53,27 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { status, rejection_reason } = body
+    const { status, rejection_reason, secret_info, proof_description } = body
+
+    // If claimant is editing their claim description
+    if (isClaimant && (secret_info || proof_description) && !status) {
+      const updateData: any = {}
+      if (secret_info) updateData.secret_info = secret_info
+      if (proof_description) updateData.proof_description = proof_description
+      updateData.updated_at = new Date().toISOString()
+
+      const { data: updatedClaim, error } = await (supabase.from('claims') as any)
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ claim: updatedClaim })
+    }
 
     // Validate status transitions
     if (status === 'approved' || status === 'rejected') {

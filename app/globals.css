@@ -150,3 +150,340 @@ html {
   background: var(--kp-primary);
 }
 
+/* ===== PAGE TRANSITION - WATER FLOOD & SUBMARINE ===== */
+
+.page-transition-wrapper {
+  position: relative;
+  min-height: 100vh;
+}
+
+.transition-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998;
+  pointer-events: all;
+  overflow: hidden;
+}
+
+.underwater-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, 
+    rgba(50, 50, 50, 0.97) 0%, 
+    rgba(43, 43, 43, 0.98) 50%,
+    rgba(35, 35, 35, 1) 100%);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Caustics / Light rays effect */
+.caustics {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(180, 180, 180, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 40% at 30% 20%, rgba(160, 160, 160, 0.06) 0%, transparent 40%),
+    radial-gradient(ellipse 60% 30% at 70% 30%, rgba(140, 140, 140, 0.05) 0%, transparent 35%);
+  animation: caustics-move 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes caustics-move {
+  0%, 100% {
+    transform: translateX(0) scaleX(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translateX(-3%) scaleX(1.02);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateX(2%) scaleX(0.98);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translateX(-1%) scaleX(1.01);
+    opacity: 0.9;
+  }
+}
+
+/* Submarine container - floating in place */
+.submarine-floating {
+  position: absolute;
+  z-index: 10001;
+  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.4));
+}
+
+.submarine {
+  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.4));
+}
+
+/* Propeller spin animation */
+.propeller {
+  transform-origin: center;
+  animation: spin-propeller 0.15s linear infinite;
+}
+
+@keyframes spin-propeller {
+  0% { transform: scaleY(1); }
+  25% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+  75% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1); }
+}
+
+/* Light glow pulse */
+.light-glow {
+  animation: light-pulse 1s ease-in-out infinite;
+}
+
+@keyframes light-pulse {
+  0%, 100% { 
+    opacity: 1;
+    filter: drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 15px rgba(255, 215, 0, 0.5));
+  }
+  50% { 
+    opacity: 0.7;
+    filter: drop-shadow(0 0 4px #FFD700) drop-shadow(0 0 8px rgba(255, 215, 0, 0.3));
+  }
+}
+
+/* Submarine bubbles */
+.bubble {
+  animation: bubble-float 1.5s ease-in-out infinite;
+}
+
+.bubble-1 { animation-delay: 0s; }
+.bubble-2 { animation-delay: 0.3s; }
+.bubble-3 { animation-delay: 0.6s; }
+
+@keyframes bubble-float {
+  0% {
+    transform: translateX(0) translateY(0) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateX(10px) translateY(-5px) scale(1.1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateX(20px) translateY(-10px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* Underwater particles */
+.underwater-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Swimming fish - crossing the screen */
+.swimming-fish {
+  position: absolute;
+  opacity: 0.8;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.swimming-fish.fish-left {
+  animation: swim-left-to-right 1.5s ease-in-out forwards;
+}
+
+.swimming-fish.fish-right {
+  animation: swim-right-to-left 1.5s ease-in-out forwards;
+  transform: scaleX(-1);
+}
+
+@keyframes swim-left-to-right {
+  0% {
+    left: -10%;
+    transform: scaleX(1) translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  25% {
+    transform: scaleX(1) translateY(-10px) rotate(5deg);
+  }
+  50% {
+    transform: scaleX(1) translateY(5px) rotate(-3deg);
+  }
+  75% {
+    transform: scaleX(1) translateY(-8px) rotate(4deg);
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    left: 110%;
+    transform: scaleX(1) translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+@keyframes swim-right-to-left {
+  0% {
+    right: -10%;
+    left: auto;
+    transform: scaleX(-1) translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  25% {
+    transform: scaleX(-1) translateY(-8px) rotate(-5deg);
+  }
+  50% {
+    transform: scaleX(-1) translateY(8px) rotate(3deg);
+  }
+  75% {
+    transform: scaleX(-1) translateY(-5px) rotate(-4deg);
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    right: 110%;
+    left: auto;
+    transform: scaleX(-1) translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+/* Legacy fish class - keep for backward compatibility */
+.fish {
+  position: absolute;
+  font-size: 24px;
+  animation: fish-swim 3s ease-in-out infinite;
+  opacity: 0.7;
+}
+
+/* Seaweed swaying at bottom */
+.seaweed {
+  position: absolute;
+  bottom: 5%;
+  font-size: 40px;
+  transform-origin: bottom center;
+  animation: sway-seaweed 2s ease-in-out infinite;
+  opacity: 0.6;
+  filter: hue-rotate(60deg) brightness(0.8);
+}
+
+@keyframes sway-seaweed {
+  0%, 100% {
+    transform: rotate(-8deg) scaleY(1);
+  }
+  50% {
+    transform: rotate(8deg) scaleY(1.05);
+  }
+}
+
+@keyframes fish-swim {
+  0%, 100% {
+    transform: translateX(0) scaleX(-1) rotate(0deg);
+  }
+  25% {
+    transform: translateX(20px) scaleX(-1) rotate(5deg);
+  }
+  50% {
+    transform: translateX(0) scaleX(-1) rotate(0deg);
+  }
+  75% {
+    transform: translateX(-15px) scaleX(-1) rotate(-5deg);
+  }
+}
+
+.floating-bubble {
+  position: absolute;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2));
+  border-radius: 50%;
+  animation: float-up 3s ease-in infinite;
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-50vh) scale(1.2);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-100vh) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* Loading text */
+.loading-text {
+  position: absolute;
+  bottom: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.loading-dots::after {
+  content: '';
+  animation: loading-dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes loading-dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
+}
+
+/* Water wave styling */
+.water-wave {
+  will-change: transform;
+}
+
+.water-wave::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' fill='rgba(60,60,60,0.95)'/%3E%3C/svg%3E") repeat-x;
+  background-size: 1200px 40px;
+  animation: wave-motion 2s linear infinite;
+}
+
+@keyframes wave-motion {
+  0% { background-position-x: 0; }
+  100% { background-position-x: 1200px; }
+}
+
+/* ===== END PAGE TRANSITION ===== */
+

@@ -9,22 +9,63 @@ import SearchFiltersComponent from "@/components/search-filters"
 import { useSearch, type SearchFilters } from "@/contexts/search-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
-import { MapPin, Calendar, Shield, Plus } from "lucide-react"
+import { TransitionLink } from "@/components/page-transition"
+import { MapPin, Calendar, Shield, Plus, ImageOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 
-export default function BrowsePage() {
-  const searchParams = useSearchParams()
-  const { results, isLoading, search } = useSearch()
-  const [filters, setFilters] = useState<SearchFilters>({})
-  const [activeTab, setActiveTab] = useState<'all' | 'lost' | 'found'>('all')
-  const query = searchParams.get("q") || ""
+// Image component with fallback
+function ItemImage({ src, alt }: { src: string; alt: string }) {
+  const [error, setError] = useState(false)
+  const [imgSrc, setImgSrc] = useState(src)
 
   useEffect(() => {
-    if (!search) return
+    setImgSrc(src)
+    setError(false)
+  }, [src])
+
+  if (error || !imgSrc || imgSrc === "/placeholder.svg") {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-[#F5F5F5]">
+        <ImageOff className="w-8 h-8 text-[#D4D4D4]" />
+      </div>
+    )
+  }
+
+  return (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      fill
+      sizes="144px"
+      className="object-cover group-hover:scale-105 transition-transform duration-300"
+      onError={() => setError(true)}
+      unoptimized
+    />
+  )
+}
+
+export default function BrowsePage() {
+  const searchParams = useSearchParams()
+  const { results, isLoading, search, refreshItems } = useSearch()
+  const [filters, setFilters] = useState<SearchFilters>({})
+  const [activeTab, setActiveTab] = useState<'all' | 'lost' | 'found'>('all')
+  const [hasInitialized, setHasInitialized] = useState(false)
+  const query = searchParams.get("q") || ""
+
+  // Initial load - ensure items are fetched on page mount
+  useEffect(() => {
+    if (!hasInitialized && refreshItems) {
+      refreshItems()
+      setHasInitialized(true)
+    }
+  }, [hasInitialized, refreshItems])
+
+  // Search when query or filters change
+  useEffect(() => {
+    if (!search || !hasInitialized) return
     search(query, filters)
-  }, [query, filters, search])
+  }, [query, filters, search, hasInitialized])
 
   const handleFilter = (newFilters: SearchFilters) => {
     setFilters(newFilters)
@@ -60,7 +101,7 @@ export default function BrowsePage() {
             <div className="flex-1">
               <SearchBar />
             </div>
-            <Link href="/listing/create">
+            <TransitionLink href="/listing/create">
               <Button 
                 size="lg"
                 className="bg-white hover:bg-white/90 text-[#2B2B2B] whitespace-nowrap"
@@ -68,7 +109,7 @@ export default function BrowsePage() {
                 <Plus className="w-5 h-5 mr-2" />
                 Report Item
               </Button>
-            </Link>
+            </TransitionLink>
           </div>
         </div>
       </div>
@@ -133,29 +174,25 @@ export default function BrowsePage() {
                     <p className="text-[#2B2B2B]/60 mb-6">
                       {query ? `No items match "${query}"` : 'Be the first to report a lost or found item!'}
                     </p>
-                    <Link href="/listing/create">
+                    <TransitionLink href="/listing/create">
                       <Button className="bg-[#2B2B2B] hover:bg-[#2B2B2B]/90 text-white">
                         Report a lost or found item
                       </Button>
-                    </Link>
+                    </TransitionLink>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="grid gap-4">
                   {filteredResults.map((item) => (
-                    <Link key={item.id} href={`/listing/${item.id}`}>
+                    <TransitionLink key={item.id} href={`/listing/${item.id}`}>
                       <Card className="bg-white border-[#D4D4D4] hover:shadow-lg hover:border-[#2B2B2B]/30 transition-all duration-300 cursor-pointer group">
                         <CardContent className="p-0">
                           <div className="flex gap-0">
                             {/* Image */}
                             <div className="relative h-36 w-36 flex-shrink-0 bg-[#F5F5F5] overflow-hidden">
-                              <Image
+                              <ItemImage
                                 src={item.image || "/placeholder.svg"}
                                 alt={item.title}
-                                fill
-                                sizes="144px"
-                                className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                unoptimized
                               />
                             </div>
 
@@ -204,7 +241,7 @@ export default function BrowsePage() {
                           </div>
                         </CardContent>
                       </Card>
-                    </Link>
+                    </TransitionLink>
                   ))}
                 </div>
               )}

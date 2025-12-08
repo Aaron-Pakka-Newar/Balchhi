@@ -9,6 +9,7 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import MyListings from "@/components/my-listings"
 import CreateListingButton from "@/components/create-listing-button"
+import ClaimsList from "@/components/claims-list"
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth()
@@ -162,25 +163,7 @@ export default function DashboardPage() {
             </TabsContent>
 
             <TabsContent value="claims">
-              <Card className="bg-white border-0 shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-[#2B2B2B]">Claims</CardTitle>
-                  <CardDescription className="text-[#2B2B2B]">
-                    Track claims on your found items or your own claims
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 rounded-full bg-[#D4D4D4]/20 flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-8 h-8 text-[#2B2B2B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                    </div>
-                    <p className="text-[#2B2B2B] font-medium">No claims yet</p>
-                    <p className="text-[#2B2B2B] text-sm mt-1">Claims will appear here when someone claims your item</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <ClaimsList />
             </TabsContent>
 
             <TabsContent value="messages">

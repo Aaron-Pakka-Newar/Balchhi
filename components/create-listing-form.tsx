@@ -154,7 +154,50 @@ export default function CreateListingForm({ type = 'lost' }: CreateListingFormPr
         landmark: values.landmark || "",
       }
 
-      // Prepare item data
+      // Upload images first and collect URLs
+      const uploadedMedia: { url: string; thumbnail_url?: string }[] = []
+      
+      if (images.length > 0) {
+        for (let i = 0; i < images.length; i++) {
+          const file = images[i]
+          const fileExt = file.name.split('.').pop() || 'jpg'
+          const fileName = `${session.user.id}/${Date.now()}-${i}.${fileExt}`
+          
+          try {
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from("item-images")
+              .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: false
+              })
+
+            if (uploadError) {
+              console.error("Image upload error:", uploadError)
+              // If bucket doesn't exist, show a helpful message but continue
+              if (uploadError.message?.includes('Bucket not found')) {
+                console.warn("Storage bucket 'item-images' not found. Please create it in Supabase Dashboard > Storage.")
+              }
+              continue
+            }
+
+            // Get the public URL for the uploaded image
+            const { data: urlData } = supabase.storage
+              .from("item-images")
+              .getPublicUrl(fileName)
+
+            if (urlData?.publicUrl) {
+              uploadedMedia.push({
+                url: urlData.publicUrl,
+                thumbnail_url: urlData.publicUrl,
+              })
+            }
+          } catch (err) {
+            console.error("Failed to upload image:", err)
+          }
+        }
+      }
+
+      // Prepare item data with media
       const itemData = {
         type,
         title: values.title,
@@ -167,6 +210,7 @@ export default function CreateListingForm({ type = 'lost' }: CreateListingFormPr
         contact_phone: values.contactPhone || null,
         contact_email: values.contactEmail || null,
         show_contact: true,
+        media: uploadedMedia, // Include media URLs
       }
 
       // Call API to create item
@@ -182,24 +226,6 @@ export default function CreateListingForm({ type = 'lost' }: CreateListingFormPr
       if (!response.ok) {
         const error = await response.json()
         throw new Error(error.error || "Failed to create listing")
-      }
-
-      const { item } = await response.json()
-
-      // Upload images if any
-      if (images.length > 0) {
-        for (let i = 0; i < images.length; i++) {
-          const file = images[i]
-          const fileName = `${item.id}/${Date.now()}-${i}.jpg`
-          
-          const { error: uploadError } = await supabase.storage
-            .from("item-images")
-            .upload(fileName, file)
-
-          if (uploadError) {
-            console.error("Image upload error:", uploadError)
-          }
-        }
       }
 
       alert("Listing created successfully!")

@@ -130,7 +130,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await query
 
       if (error) {
-        console.error("Supabase error:", error)
+        console.error("Supabase error:", error.message || error.code || JSON.stringify(error))
         return []
       }
 

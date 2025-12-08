@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase'
+import { createServerClientWithAuth } from '@/lib/supabase'
 
 // GET /api/claims - List claims for user
 export async function GET(request: NextRequest) {
-  const supabase = createServerClient()
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const token = authHeader.replace('Bearer ', '')
+  const supabase = createServerClientWithAuth(token) as any
+  
   const { searchParams } = new URL(request.url)
   const itemId = searchParams.get('itemId')
   const status = searchParams.get('status')
@@ -25,10 +32,13 @@ export async function GET(request: NextRequest) {
         claimant:profiles(id, name, avatar_url, is_verified),
         evidence:claim_evidence(*)
       `)
-      .or(`claimant_id.eq.${user.id},item.user_id.eq.${user.id}`)
 
+    // If itemId is provided, filter claims by current user for that item
     if (itemId) {
-      query = query.eq('item_id', itemId)
+      query = query.eq('item_id', itemId).eq('claimant_id', user.id)
+    } else {
+      // Otherwise, only return user's own claims
+      query = query.eq('claimant_id', user.id)
     }
 
     if (status) {
@@ -55,7 +65,13 @@ export async function GET(request: NextRequest) {
 
 // POST /api/claims - Create claim
 export async function POST(request: NextRequest) {
-  const supabase = createServerClient()
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const token = authHeader.replace('Bearer ', '')
+  const supabase = createServerClientWithAuth(token) as any
 
   try {
     const body = await request.json()
@@ -126,6 +142,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
+      console.error('Error creating claim:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
@@ -141,19 +158,20 @@ export async function POST(request: NextRequest) {
       await (supabase.from('claim_evidence') as any).insert(evidenceData)
     }
 
-    // Create notification for item owner
-    await (supabase.from('notifications') as any).insert({
-      user_id: (item as any).user_id,
-      type: 'new_claim',
-      title: 'New Claim Received',
-      body: 'Someone has claimed your item. Review their claim now.',
-      data: { claim_id: claim.id, item_id: (item as any).id },
-    })
-
-    // Update item status
-    await (supabase.from('items') as any)
-      .update({ status: 'claimed' })
-      .eq('id', item_id)
+    // Create notification for item owner (optional - don't fail if notifications table doesn't exist)
+    try {
+      await (supabase.from('notifications') as any).insert({
+        user_id: (item as any).user_id,
+        type: 'claim_received',
+        title: 'New Claim Received',
+        body: 'Someone has claimed your item. Review their claim now.',
+        message: 'Someone has claimed your item. Review their claim now.',
+        data: { claim_id: claim.id, item_id: (item as any).id },
+      })
+    } catch (notifError) {
+      console.error('Failed to create notification:', notifError)
+      // Continue without failing the claim creation
+    }
 
     return NextResponse.json({ claim }, { status: 201 })
   } catch (error) {

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { MapPin, Calendar, User, MessageCircle, Shield, Share2, Flag } from "lucide-react"
 import ClaimItemDialog from "@/components/claim-item-dialog"
+import ChatDialog from "@/components/chat-dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase"
 
@@ -221,10 +222,25 @@ export default function ListingDetailPage() {
                     </div>
                   </div>
 
-                  <Button className="w-full bg-[#2B2B2B] hover:bg-[#2B2B2B] text-[#FFFFFF]">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Contact Poster
-                  </Button>
+                  {isOwner ? (
+                    <Button className="w-full bg-[#D4D4D4] text-[#2B2B2B] cursor-not-allowed" disabled>
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      This is your listing
+                    </Button>
+                  ) : listing.user?.id ? (
+                    <ChatDialog
+                      itemId={listing.id}
+                      itemTitle={listing.title}
+                      recipientId={listing.user.id}
+                      recipientName={listing.user.name || "Anonymous"}
+                      recipientAvatar={listing.user.avatar_url}
+                    />
+                  ) : (
+                    <Button className="w-full bg-[#2B2B2B] hover:bg-[#2B2B2B]/90 text-[#FFFFFF]" disabled>
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Contact Unavailable
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
