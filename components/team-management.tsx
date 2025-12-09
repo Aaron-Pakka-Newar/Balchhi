@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormField, FormItem, FormControl, FormMessage } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useOrganization, type Organization, type StaffRole } from "@/contexts/organization-context"
+import { useOrganization, type Organization, type StaffRole, type OrgMemberRole } from "@/contexts/organization-context"
 import { useToast } from "@/hooks/use-toast"
 import { Trash2 } from "lucide-react"
 
@@ -40,11 +40,14 @@ export default function TeamManagement({ organization }: TeamManagementProps) {
   async function onSubmit(values: InviteFormValues) {
     setIsLoading(true)
     try {
+      // Note: In a real implementation, you would first lookup the user by email
+      // or send an invitation. For now, we'll just show a placeholder
       await addMember(organization.id, {
-        userId: Math.random().toString(36).substring(7),
+        userId: "", // This should be the actual user ID from lookup
         name: values.email.split("@")[0],
         email: values.email,
         role: values.role,
+        memberRole: values.role === "admin" ? "org_admin" : values.role === "manager" ? "org_manager" : "org_staff",
       })
 
       toast({
@@ -55,7 +58,7 @@ export default function TeamManagement({ organization }: TeamManagementProps) {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to add member",
+        description: error instanceof Error ? error.message : "Failed to add member",
         variant: "destructive",
       })
     } finally {

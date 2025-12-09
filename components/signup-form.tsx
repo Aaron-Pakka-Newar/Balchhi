@@ -58,13 +58,13 @@ export default function SignupForm() {
     setEmailError(null)
     
     try {
-      const { data, error } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', email.toLowerCase())
         .maybeSingle()
       
-      if (data) {
+      if (profileData) {
         setEmailError("Email already registered")
       }
     } catch (err) {
@@ -78,13 +78,13 @@ export default function SignupForm() {
     setPhoneError(null)
     
     try {
-      const { data, error } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('id')
         .eq('phone', phone)
         .maybeSingle()
       
-      if (data) {
+      if (profileData) {
         setPhoneError("Phone number already registered")
       }
     } catch (err) {
@@ -97,7 +97,7 @@ export default function SignupForm() {
     setEmailError(null)
     setPhoneError(null)
     
-    // Check for existing email/phone before submitting
+    // Check for existing email before submitting
     const emailCheck = await supabase
       .from('profiles')
       .select('id')
@@ -109,6 +109,7 @@ export default function SignupForm() {
       return
     }
 
+    // Check for existing phone
     if (values.phone && values.phone.trim() !== '') {
       const phoneCheck = await supabase
         .from('profiles')
@@ -124,13 +125,22 @@ export default function SignupForm() {
 
     setIsLoading(true)
     try {
-      await signup(values.email, values.password, values.name, values.role as UserRole)
+      await signup(values.email, values.password, values.name, values.role as UserRole, values.phone)
       
-      toast({
-        title: "Success",
-        description: "Account created successfully!",
-      })
-      router.push("/dashboard")
+      // Redirect organization users to organization dashboard to complete setup
+      if (values.role === 'organization') {
+        toast({
+          title: "Success",
+          description: "Account created! Please complete your organization setup.",
+        })
+        router.push("/dashboard/organization")
+      } else {
+        toast({
+          title: "Success",
+          description: "Account created successfully!",
+        })
+        router.push("/dashboard")
+      }
     } catch (error) {
       console.error("Signup error:", error)
       const errorMessage = error instanceof Error ? error.message : "Failed to create account. Please try again."
@@ -160,10 +170,12 @@ export default function SignupForm() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-[#2B2B2B] font-medium">Full Name</FormLabel>
+              <FormLabel className="text-[#2B2B2B] font-medium">
+                {selectedRole === 'organization' ? 'Organization Name' : 'Full Name'}
+              </FormLabel>
               <FormControl>
                 <Input 
-                  placeholder="Your full name" 
+                  placeholder={selectedRole === 'organization' ? 'Your organization name' : 'Your full name'} 
                   className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B] placeholder:text-[#2B2B2B]/40" 
                   {...field} 
                 />
@@ -327,27 +339,6 @@ export default function SignupForm() {
             </FormItem>
           )}
         />
-
-        {/* Organization description field, only show if role is organization */}
-        {selectedRole === 'organization' && (
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[#2B2B2B] font-medium">Organization Description</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Describe your organization" 
-                    className="border-[#D4D4D4] focus:border-[#2B2B2B] focus:ring-[#2B2B2B] placeholder:text-[#2B2B2B]/40" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage className="text-red-600" />
-              </FormItem>
-            )}
-          />
-        )}
 
         <Button 
           type="submit" 

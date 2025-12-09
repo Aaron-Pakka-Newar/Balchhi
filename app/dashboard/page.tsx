@@ -20,6 +20,10 @@ export default function DashboardPage() {
     if (!isLoading && !user) {
       router.push("/login")
     }
+    // Redirect organization users to organization dashboard
+    if (!isLoading && user && user.role === 'organization') {
+      router.push("/dashboard/organization")
+    }
   }, [user, isLoading, router])
 
   if (isLoading) {

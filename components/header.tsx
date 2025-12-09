@@ -88,12 +88,14 @@ export default function Header() {
             >
               Report Item
             </TransitionLink>
-            <TransitionLink 
-              href="/dashboard/organization" 
-              className={`transition-colors font-medium ${textColorMuted}`}
-            >
-              Organizations
-            </TransitionLink>
+            {user?.role === 'organization' && (
+              <TransitionLink 
+                href="/dashboard/organization" 
+                className={`transition-colors font-medium ${textColorMuted}`}
+              >
+                Organizations
+              </TransitionLink>
+            )}
           </nav>
 
           {/* Desktop Auth */}
@@ -171,13 +173,15 @@ export default function Header() {
               >
                 Report Item
               </TransitionLink>
-              <TransitionLink 
-                href="/dashboard/organization" 
-                className={`${textColor} ${hoverBg} px-4 py-3 rounded-lg transition-colors block`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Organizations
-              </TransitionLink>
+              {user?.role === 'organization' && (
+                <TransitionLink 
+                  href="/dashboard/organization" 
+                  className={`${textColor} ${hoverBg} px-4 py-3 rounded-lg transition-colors block`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Organizations
+                </TransitionLink>
+              )}
               
               <div className={`pt-4 border-t ${borderColor} mt-2`}>
                 {user ? (

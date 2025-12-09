@@ -17,7 +17,7 @@ import { Building, Settings, Users, BarChart3, Shield } from "lucide-react"
 
 export default function OrganizationPage() {
   const { user, isLoading } = useAuth()
-  const { organizations } = useOrganization()
+  const { organizations, currentOrganization, isLoading: orgLoading } = useOrganization()
   const router = useRouter()
 
   // Verification state management
@@ -27,12 +27,16 @@ export default function OrganizationPage() {
   const [loadingVerification, setLoadingVerification] = useState(true)
 
   const userOrganizations = user ? organizations.filter((org) => org.ownerId === user.id) : []
-  const organization = userOrganizations[0]
+  const organization = currentOrganization || userOrganizations[0]
   const organizationId = organization?.id
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/login")
+    }
+    // Redirect non-organization users to dashboard
+    if (!isLoading && user && user.role !== 'organization') {
+      router.push("/dashboard")
     }
   }, [user, isLoading, router])
 
@@ -109,7 +113,7 @@ export default function OrganizationPage() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || orgLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#D4D4D4]">
         <div className="text-center">

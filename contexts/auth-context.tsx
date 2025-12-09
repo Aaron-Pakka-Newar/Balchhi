@@ -39,11 +39,44 @@ interface AuthContextType {
   isLoading: boolean
   isEmailConfirmed: boolean
   login: (email: string, password: string) => Promise<void>
-  signup: (email: string, password: string, name: string, role: UserRole) => Promise<void>
+  signup: (email: string, password: string, name: string, role: UserRole, phone?: string) => Promise<void>
   logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+// Helper function to fetch user profile from appropriate table
+async function fetchUserProfile(userId: string): Promise<User | null> {
+  try {
+    // Check profiles table (all users are stored here)
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle() // Use maybeSingle instead of single to avoid error when no rows
+    
+    if (error) {
+      console.error('Error fetching profile:', error.message, error.code, error.details)
+      return null
+    }
+    
+    if (profile) {
+      return {
+        id: profile.id,
+        email: profile.email,
+        name: profile.name,
+        role: mapDbRoleToUserRole(profile.role),
+        createdAt: new Date(profile.created_at || Date.now()),
+      }
+    }
+    
+    console.log('No profile found for userId:', userId)
+    return null
+  } catch (err) {
+    console.error('Exception fetching profile:', err)
+    return null
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -60,21 +93,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession)
         
         if (currentSession) {
-          // Fetch user profile from database
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentSession.user.id)
-            .single() as { data: ProfileRow | null }
-          
-          if (profile) {
-            setUser({
-              id: profile.id,
-              email: profile.email,
-              name: profile.name,
-              role: mapDbRoleToUserRole(profile.role),
-              createdAt: new Date(profile.created_at || Date.now()),
-            })
+          // Fetch user profile from appropriate table
+          const userProfile = await fetchUserProfile(currentSession.user.id)
+          if (userProfile) {
+            setUser(userProfile)
           }
         }
       } catch (error) {
@@ -91,20 +113,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(currentSession)
       
       if (currentSession?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', currentSession.user.id)
-          .single() as { data: ProfileRow | null }
-        
-        if (profile) {
-          setUser({
-            id: profile.id,
-            email: profile.email,
-            name: profile.name,
-            role: mapDbRoleToUserRole(profile.role),
-            createdAt: new Date(profile.created_at || Date.now()),
-          })
+        const userProfile = await fetchUserProfile(currentSession.user.id)
+        if (userProfile) {
+          setUser(userProfile)
         }
       } else {
         setUser(null)
@@ -118,34 +129,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw error
+      if (error) {
+        console.error('Supabase auth error:', error)
+        throw error
+      }
+      
+      if (!data.session || !data.user) {
+        throw new Error('Login failed - no session returned')
+      }
       
       setSession(data.session)
       
-      // Fetch user profile
-      if (data.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single() as { data: ProfileRow | null }
+      // Fetch user profile from appropriate table
+      let userProfile = await fetchUserProfile(data.user.id)
+      
+      if (!userProfile) {
+        console.log('No profile found, attempting to create one...')
+        // Try to create profile from user metadata
+        const metadata = data.user.user_metadata
+        const profileData = {
+          id: data.user.id,
+          email: data.user.email!,
+          name: metadata?.name || data.user.email?.split('@')[0] || 'User',
+          role: metadata?.role || 'individual',
+          phone: metadata?.phone || null,
+        }
         
-        if (profile) {
-          setUser({
-            id: profile.id,
-            email: profile.email,
-            name: profile.name,
-            role: mapDbRoleToUserRole(profile.role),
-            createdAt: new Date(profile.created_at || Date.now()),
+        // Call API to create missing profile
+        try {
+          const response = await fetch('/api/auth/fix-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(profileData),
           })
+          
+          if (response.ok) {
+            // Retry fetching the profile
+            userProfile = await fetchUserProfile(data.user.id)
+          }
+        } catch (err) {
+          console.error('Failed to create missing profile:', err)
         }
       }
+      
+      if (userProfile) {
+        setUser(userProfile)
+      } else {
+        console.error('No profile found for user:', data.user.id)
+        // Create a temporary user object from auth data
+        const metadata = data.user.user_metadata
+        setUser({
+          id: data.user.id,
+          email: data.user.email!,
+          name: metadata?.name || data.user.email?.split('@')[0] || 'User',
+          role: mapDbRoleToUserRole(metadata?.role || 'individual'),
+          createdAt: new Date(),
+        })
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      throw error
     } finally {
       setIsLoading(false)
     }
   }
 
-  const signup = async (email: string, password: string, name: string, role: UserRole) => {
+  const signup = async (email: string, password: string, name: string, role: UserRole, phone?: string) => {
     setIsLoading(true)
     try {
       // Call our API endpoint to handle signup
@@ -159,6 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           password,
           name,
           role,
+          phone,
         }),
       })
 
@@ -173,6 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const { user: newUserData } = await response.json()
+      console.log('Signup successful, user data:', newUserData)
 
       // Automatically log in
       const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
@@ -180,21 +231,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
       })
 
-      if (loginError) throw loginError
+      if (loginError) {
+        console.error('Auto-login error:', loginError)
+        throw loginError
+      }
+
+      console.log('Auto-login successful:', loginData.session?.user?.id)
 
       if (loginData.session) {
         setSession(loginData.session)
         setIsEmailConfirmed(true)
 
+        // Use the role from API response to ensure consistency
         const newUser: User = {
           id: newUserData.id,
           email: newUserData.email,
           name: newUserData.name,
-          role: newUserData.role as UserRole,
+          role: role, // Use the role passed to signup, not from API
           createdAt: new Date(),
         }
         setUser(newUser)
+        console.log('User state set:', newUser)
       }
+    } catch (error) {
+      console.error('Signup error in context:', error)
+      throw error
     } finally {
       setIsLoading(false)
     }

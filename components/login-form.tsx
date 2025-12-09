@@ -39,9 +39,14 @@ export default function LoginForm() {
     setError(null)
     try {
       await login(values.email, values.password)
+      // The login function sets the user in auth context
+      // We'll let the dashboard pages handle role-based redirects
+      // For now, redirect to dashboard - the page will redirect to /dashboard/organization if needed
       router.push("/dashboard")
     } catch (err) {
-      setError("Invalid email or password. Please try again.")
+      console.error("Login error:", err)
+      const errorMessage = err instanceof Error ? err.message : "Invalid email or password. Please try again."
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }

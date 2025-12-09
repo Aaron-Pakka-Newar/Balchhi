@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient, createAdminClient } from '@/lib/supabase'
+import { createServerClient, createServerClientWithAuth, createAdminClient } from '@/lib/supabase'
 import { validateOrgEmail } from '@/lib/org-rbac'
 
 // GET /api/organizations - List organizations
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true)
 
     if (type) {
-      query = query.eq('type', type)
+      query = query.eq('type', type as any)
     }
 
     if (verified === 'true') {
@@ -55,10 +55,18 @@ export async function GET(request: NextRequest) {
 
 // POST /api/organizations - Register organization
 export async function POST(request: NextRequest) {
-  const supabase = createServerClient()
   const adminClient = createAdminClient()
 
   try {
+    // Get authenticated user from request
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Missing authorization header' }, { status: 401 })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const supabase = createServerClientWithAuth(token)
+
     const body = await request.json()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
