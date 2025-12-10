@@ -24,8 +24,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Use admin client to bypass RLS for fetching and updating claims
+    const adminClient = createAdminClient() as any
+
     // Get claim with item details
-    const { data: claim } = await supabase
+    const { data: claim } = await adminClient
       .from('claims')
       .select(`
         *,
@@ -53,16 +56,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { status, rejection_reason, secret_info, proof_description } = body
+    const { status, rejection_reason, secret_info, proof_description, evidence } = body
 
     // If claimant is editing their claim description
-    if (isClaimant && (secret_info || proof_description) && !status) {
+    if (isClaimant && (secret_info || proof_description || evidence) && !status) {
       const updateData: any = {}
       if (secret_info) updateData.secret_info = secret_info
       if (proof_description) updateData.proof_description = proof_description
       updateData.updated_at = new Date().toISOString()
 
-      const { data: updatedClaim, error } = await (supabase.from('claims') as any)
+      const { data: updatedClaim, error } = await (adminClient.from('claims') as any)
         .update(updateData)
         .eq('id', id)
         .select()
@@ -70,6 +73,50 @@ export async function PATCH(
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      // Add new evidence if provided
+      if (evidence && Array.isArray(evidence) && evidence.length > 0) {
+        const evidenceData = evidence.map((e: any) => ({
+          claim_id: id,
+          type: e.type,
+          url: e.url,
+          description: e.description,
+        }))
+
+        const { error: evidenceError } = await (adminClient.from('claim_evidence') as any).insert(evidenceData)
+        if (evidenceError) {
+          console.error('Failed to save evidence:', evidenceError)
+        }
+      }
+
+      // Notify item owner about updated claim
+      try {
+        // Get claimant and item details for notification
+        const { data: claimantProfile } = await adminClient
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single()
+
+        const { data: itemDetails } = await adminClient
+          .from('items')
+          .select('title')
+          .eq('id', claim.item_id)
+          .single()
+
+        const hasNewEvidence = evidence && Array.isArray(evidence) && evidence.length > 0
+
+        await (adminClient.from('notifications') as any).insert({
+          user_id: claim.item?.user_id,
+          type: 'claim_updated',
+          title: 'Claim Updated',
+          body: `${claimantProfile?.name || 'A claimant'} has updated their claim for "${itemDetails?.title || 'your item'}"${hasNewEvidence ? ' with new evidence' : ''}. Review it now.`,
+          message: `${claimantProfile?.name || 'A claimant'} has updated their claim for "${itemDetails?.title || 'your item'}"${hasNewEvidence ? ' with new evidence' : ''}. Review it now.`,
+          data: { claim_id: id, item_id: claim.item_id },
+        })
+      } catch (notifError) {
+        console.error('Failed to create notification:', notifError)
       }
 
       return NextResponse.json({ claim: updatedClaim })
@@ -105,7 +152,7 @@ export async function PATCH(
       updateData.rejection_reason = rejection_reason
     }
 
-    const { data: updatedClaim, error } = await (supabase.from('claims') as any)
+    const { data: updatedClaim, error } = await (adminClient.from('claims') as any)
       .update(updateData)
       .eq('id', id)
       .select()
@@ -118,19 +165,19 @@ export async function PATCH(
     // Handle claim approval
     if (status === 'approved') {
       // Update item status to resolved
-      await (supabase
+      await (adminClient
         .from('items') as any)
         .update({ status: 'resolved' })
         .eq('id', claim.item_id)
 
       // Create handover record
-      await (supabase.from('handovers') as any).insert({
+      await (adminClient.from('handovers') as any).insert({
         claim_id: id,
         method: 'meetup', // default, can be changed later
       })
 
       // Notify claimant
-      await (supabase.from('notifications') as any).insert({
+      await (adminClient.from('notifications') as any).insert({
         user_id: claim.claimant_id,
         type: 'claim_approved',
         title: 'Claim Approved!',
@@ -139,7 +186,7 @@ export async function PATCH(
       })
 
       // Reject other pending claims
-      await (supabase
+      await (adminClient
         .from('claims') as any)
         .update({ status: 'rejected', rejection_reason: 'Another claim was approved' })
         .eq('item_id', claim.item_id)
@@ -149,7 +196,7 @@ export async function PATCH(
 
     if (status === 'rejected') {
       // Notify claimant
-      await (supabase.from('notifications') as any).insert({
+      await (adminClient.from('notifications') as any).insert({
         user_id: claim.claimant_id,
         type: 'claim_rejected',
         title: 'Claim Rejected',
@@ -158,7 +205,7 @@ export async function PATCH(
       })
 
       // Check if there are other pending claims
-      const { count } = await supabase
+      const { count } = await adminClient
         .from('claims')
         .select('*', { count: 'exact', head: true })
         .eq('item_id', claim.item_id)
@@ -166,7 +213,7 @@ export async function PATCH(
 
       // If no more pending claims, revert item to active
       if (count === 0) {
-        await (supabase
+        await (adminClient
           .from('items') as any)
           .update({ status: 'active' })
           .eq('id', claim.item_id)

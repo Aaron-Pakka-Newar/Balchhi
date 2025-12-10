@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClientWithAuth } from '@/lib/supabase'
+import { createServerClientWithAuth, createAdminClient } from '@/lib/supabase'
 
 // GET /api/claims - List claims for user
 export async function GET(request: NextRequest) {
@@ -21,7 +21,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    let query = supabase
+    // Use admin client to bypass RLS - we filter by user.id at the application level
+    const adminClient = createAdminClient() as any
+
+    let query = adminClient
       .from('claims')
       .select(`
         *,
@@ -29,7 +32,7 @@ export async function GET(request: NextRequest) {
           id, title, type, status,
           user:profiles(id, name, avatar_url)
         ),
-        claimant:profiles(id, name, avatar_url, is_verified),
+        claimant:profiles!claims_claimant_id_fkey(id, name, avatar_url, is_verified),
         evidence:claim_evidence(*)
       `)
 
@@ -50,6 +53,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query
 
     if (error) {
+      console.error('Error fetching claims from DB:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
@@ -147,7 +151,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle evidence uploads if provided
-    if (body.evidence && Array.isArray(body.evidence)) {
+    if (body.evidence && Array.isArray(body.evidence) && body.evidence.length > 0) {
       const evidenceData = body.evidence.map((e: any) => ({
         claim_id: claim.id,
         type: e.type,
@@ -155,17 +159,35 @@ export async function POST(request: NextRequest) {
         description: e.description,
       }))
 
-      await (supabase.from('claim_evidence') as any).insert(evidenceData)
+      const { error: evidenceError } = await (supabase.from('claim_evidence') as any).insert(evidenceData)
+      if (evidenceError) {
+        console.error('Failed to save evidence:', evidenceError)
+      }
     }
+
+    // Get claimant profile for notification
+    const { data: claimantProfile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single()
+
+    // Get item details for notification
+    const { data: itemDetails } = await supabase
+      .from('items')
+      .select('title')
+      .eq('id', item_id)
+      .single()
 
     // Create notification for item owner (optional - don't fail if notifications table doesn't exist)
     try {
+      const hasEvidence = body.evidence && Array.isArray(body.evidence) && body.evidence.length > 0
       await (supabase.from('notifications') as any).insert({
         user_id: (item as any).user_id,
         type: 'claim_received',
         title: 'New Claim Received',
-        body: 'Someone has claimed your item. Review their claim now.',
-        message: 'Someone has claimed your item. Review their claim now.',
+        body: `${claimantProfile?.name || 'Someone'} has claimed your "${itemDetails?.title || 'item'}"${hasEvidence ? ' with evidence attached' : ''}. Review their claim now.`,
+        message: `${claimantProfile?.name || 'Someone'} has claimed your "${itemDetails?.title || 'item'}"${hasEvidence ? ' with evidence attached' : ''}. Review their claim now.`,
         data: { claim_id: claim.id, item_id: (item as any).id },
       })
     } catch (notifError) {

@@ -5,8 +5,17 @@ import { useAuth } from "@/contexts/auth-context"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Shield, Check, X, Clock, User, ChevronRight } from "lucide-react"
+import { Shield, Check, X, Clock, User, ChevronRight, Eye, FileText, Image as ImageIcon } from "lucide-react"
 import { TransitionLink } from "@/components/page-transition"
+import ClaimReviewDialog from "@/components/claim-review-dialog"
+
+interface Evidence {
+  id: string
+  type: string
+  url: string
+  description?: string
+  created_at: string
+}
 
 interface Claim {
   id: string
@@ -31,6 +40,7 @@ interface Claim {
     avatar_url?: string
     is_verified: boolean
   }
+  evidence?: Evidence[]
 }
 
 interface ClaimsListProps {
@@ -41,6 +51,8 @@ export default function ClaimsList({ type = "all" }: ClaimsListProps) {
   const { user, session } = useAuth()
   const [claims, setClaims] = useState<Claim[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null)
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false)
 
   const fetchClaims = useCallback(async () => {
     if (!session?.access_token) return
@@ -214,6 +226,13 @@ export default function ClaimsList({ type = "all" }: ClaimsListProps) {
                           {claim.item?.title}
                         </TransitionLink>
                         {getStatusBadge(claim.status)}
+                        {/* Show evidence indicator */}
+                        {claim.evidence && claim.evidence.length > 0 && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            <FileText className="w-3 h-3 mr-1" />
+                            {claim.evidence.length} evidence
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                         <div className="w-6 h-6 rounded-full bg-[#2B2B2B] flex items-center justify-center">
@@ -238,30 +257,64 @@ export default function ClaimsList({ type = "all" }: ClaimsListProps) {
                         Claimed on {formatDate(claim.created_at)}
                       </p>
                       {claim.proof_description && (
-                        <p className="text-sm text-gray-600 mt-2 bg-gray-50 p-2 rounded">
+                        <p className="text-sm text-gray-600 mt-2 bg-gray-50 p-2 rounded line-clamp-2">
                           &quot;{claim.proof_description}&quot;
                         </p>
                       )}
+                      
+                      {/* Evidence thumbnails preview */}
+                      {claim.evidence && claim.evidence.length > 0 && (
+                        <div className="flex gap-2 mt-3">
+                          {claim.evidence.slice(0, 3).map((ev) => (
+                            <div key={ev.id} className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 border">
+                              {ev.type === 'image' ? (
+                                <img src={ev.url} alt="Evidence" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <FileText className="w-5 h-5 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          {claim.evidence.length > 3 && (
+                            <div className="w-12 h-12 rounded-lg bg-gray-100 border flex items-center justify-center text-xs text-gray-500">
+                              +{claim.evidence.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {claim.status === "pending" && (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700"
-                          onClick={() => handleClaimAction(claim.id, "approve")}
-                        >
-                          <Check className="w-4 h-4 mr-1" />
-                          Approve
-                        </Button>
+                      <div className="flex flex-col gap-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-red-600 border-red-200 hover:bg-red-50"
-                          onClick={() => handleClaimAction(claim.id, "reject")}
+                          className="border-[#2B2B2B]"
+                          onClick={() => {
+                            setSelectedClaim(claim)
+                            setReviewDialogOpen(true)
+                          }}
                         >
-                          <X className="w-4 h-4 mr-1" />
-                          Reject
+                          <Eye className="w-4 h-4 mr-1" />
+                          Review
                         </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 flex-1"
+                            onClick={() => handleClaimAction(claim.id, "approve")}
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-200 hover:bg-red-50 flex-1"
+                            onClick={() => handleClaimAction(claim.id, "reject")}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -316,6 +369,19 @@ export default function ClaimsList({ type = "all" }: ClaimsListProps) {
           </div>
         )}
       </CardContent>
+
+      {/* Claim Review Dialog */}
+      {selectedClaim && (
+        <ClaimReviewDialog
+          claim={selectedClaim}
+          open={reviewDialogOpen}
+          onOpenChange={(open) => {
+            setReviewDialogOpen(open)
+            if (!open) setSelectedClaim(null)
+          }}
+          onClaimUpdated={fetchClaims}
+        />
+      )}
     </Card>
   )
 }

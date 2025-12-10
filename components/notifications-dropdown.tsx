@@ -117,6 +117,8 @@ export default function NotificationsDropdown({ textColor, hoverBg }: Notificati
         return <MessageCircle className="w-4 h-4 text-blue-500" />
       case "claim_received":
         return <Shield className="w-4 h-4 text-yellow-500" />
+      case "claim_updated":
+        return <Shield className="w-4 h-4 text-orange-500" />
       case "claim_approved":
         return <Check className="w-4 h-4 text-green-500" />
       case "claim_rejected":
@@ -133,6 +135,11 @@ export default function NotificationsDropdown({ textColor, hoverBg }: Notificati
       case "new_message":
         return "/messages"
       case "claim_received":
+      case "claim_updated":
+        // Redirect to listing with claims section focused
+        return notification.data?.item_id 
+          ? `/listing/${notification.data.item_id}?tab=claims${notification.data.claim_id ? `&claim=${notification.data.claim_id}` : ''}`
+          : "/dashboard"
       case "claim_approved":
       case "claim_rejected":
         return notification.data?.item_id ? `/listing/${notification.data.item_id}` : "/dashboard"

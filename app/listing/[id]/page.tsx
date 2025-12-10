@@ -1,16 +1,39 @@
 "use client"
-import { useParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useParams, useSearchParams } from "next/navigation"
+import { useEffect, useState, useCallback, useRef } from "react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MapPin, Calendar, User, MessageCircle, Shield, Share2, Flag } from "lucide-react"
+import { MapPin, Calendar, User, MessageCircle, Shield, Share2, Flag, Check, X, Eye, FileText, Clock } from "lucide-react"
 import ClaimItemDialog from "@/components/claim-item-dialog"
 import ChatDialog from "@/components/chat-dialog"
+import ClaimReviewDialog from "@/components/claim-review-dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase"
+
+interface Evidence {
+  id: string
+  type: string
+  url: string
+  description?: string
+}
+
+interface Claim {
+  id: string
+  status: "pending" | "approved" | "rejected" | "withdrawn"
+  secret_info: string
+  proof_description?: string
+  created_at: string
+  claimant: {
+    id: string
+    name: string
+    avatar_url?: string
+    is_verified: boolean
+  }
+  evidence?: Evidence[]
+}
 
 interface ListingData {
   id: string
@@ -35,11 +58,41 @@ interface ListingData {
 
 export default function ListingDetailPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const listingId = params.id as string
-  const { user } = useAuth()
+  const tabParam = searchParams.get('tab')
+  const claimIdParam = searchParams.get('claim')
+  const { user, session } = useAuth()
   const [listing, setListing] = useState<ListingData | null>(null)
+  const [claims, setClaims] = useState<Claim[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null)
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false)
+  const [highlightClaims, setHighlightClaims] = useState(false)
+  const claimsSectionRef = useRef<HTMLDivElement>(null)
+
+  // Fetch claims for this listing (for the owner)
+  const fetchClaims = useCallback(async () => {
+    if (!session?.access_token || !listingId) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/items/${listingId}/claims`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setClaims(data.claims || [])
+      }
+    } catch (error) {
+      console.error("Error fetching claims:", error)
+    }
+  }, [session?.access_token, listingId])
 
   useEffect(() => {
     async function fetchListing() {
@@ -84,6 +137,59 @@ export default function ListingDetailPage() {
 
     fetchListing()
   }, [listingId])
+
+  // Fetch claims when listing is loaded and user is the owner
+  useEffect(() => {
+    if (listing && user?.id === listing.user_id && session?.access_token) {
+      fetchClaims()
+    }
+  }, [listing, user?.id, session?.access_token, fetchClaims])
+
+  // Handle URL params for claims tab and specific claim
+  useEffect(() => {
+    if (tabParam === 'claims' && claims.length > 0) {
+      // Scroll to claims section
+      setTimeout(() => {
+        claimsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        setHighlightClaims(true)
+        // Remove highlight after animation
+        setTimeout(() => setHighlightClaims(false), 2000)
+      }, 500)
+
+      // If a specific claim is requested, open the review dialog
+      if (claimIdParam) {
+        const claim = claims.find(c => c.id === claimIdParam)
+        if (claim) {
+          setSelectedClaim(claim)
+          setReviewDialogOpen(true)
+        }
+      }
+    }
+  }, [tabParam, claimIdParam, claims])
+
+  // Handle claim actions
+  const handleClaimAction = async (claimId: string, action: "approve" | "reject") => {
+    if (!session?.access_token) return
+
+    try {
+      const response = await fetch(`/api/claims/${claimId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          status: action === "approve" ? "approved" : "rejected",
+        }),
+      })
+
+      if (response.ok) {
+        fetchClaims()
+      }
+    } catch (error) {
+      console.error("Error updating claim:", error)
+    }
+  }
 
   // Format location for display
   const formatLocation = (location: ListingData['location']) => {
@@ -244,32 +350,180 @@ export default function ListingDetailPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-white border-0 shadow-md">
+              <Card 
+                ref={claimsSectionRef}
+                className={`bg-white border-0 shadow-md transition-all duration-500 ${
+                  highlightClaims ? 'ring-2 ring-yellow-400 ring-offset-2' : ''
+                }`}
+              >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg text-[#2B2B2B]">
+                  <CardTitle className="text-lg text-[#2B2B2B] flex items-center gap-2">
                     {isOwner ? "Claims & Verification" : "Is this your item?"}
+                    {isOwner && claims.filter(c => c.status === "pending").length > 0 && (
+                      <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                        {claims.filter(c => c.status === "pending").length} new
+                      </Badge>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isOwner ? (
                     <div className="space-y-3">
-                      <div className="text-center py-6">
-                        <div className="w-12 h-12 rounded-full bg-[#D4D4D4]/20 flex items-center justify-center mx-auto mb-3">
-                          <Shield className="w-6 h-6 text-[#2B2B2B]" />
-                        </div>
-                        <p className="text-sm text-[#2B2B2B]">
-                          No claims yet. We'll notify you when someone claims this item.
-                        </p>
-                      </div>
-                      <Button variant="outline" className="w-full border-[#D4D4D4] text-[#2B2B2B]" disabled>
-                        No Active Claims
-                      </Button>
+                      {claims.length === 0 ? (
+                        <>
+                          <div className="text-center py-6">
+                            <div className="w-12 h-12 rounded-full bg-[#D4D4D4]/20 flex items-center justify-center mx-auto mb-3">
+                              <Shield className="w-6 h-6 text-[#2B2B2B]" />
+                            </div>
+                            <p className="text-sm text-[#2B2B2B]">
+                              No claims yet. We'll notify you when someone claims this item.
+                            </p>
+                          </div>
+                          <Button variant="outline" className="w-full border-[#D4D4D4] text-[#2B2B2B]" disabled>
+                            No Active Claims
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-gray-500 mb-2">
+                            {claims.filter(c => c.status === "pending").length} pending claim(s)
+                          </p>
+                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {claims.map((claim) => (
+                              <div
+                                key={claim.id}
+                                className="border rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-[#2B2B2B] flex items-center justify-center flex-shrink-0">
+                                    {claim.claimant?.avatar_url ? (
+                                      <img
+                                        src={claim.claimant.avatar_url}
+                                        alt={claim.claimant.name}
+                                        className="w-full h-full rounded-full object-cover"
+                                      />
+                                    ) : (
+                                      <User className="w-4 h-4 text-white" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="font-medium text-sm text-[#2B2B2B] truncate">
+                                        {claim.claimant?.name || "Anonymous"}
+                                      </span>
+                                      {claim.claimant?.is_verified && (
+                                        <Badge variant="outline" className="text-xs px-1 py-0">
+                                          <Shield className="w-2 h-2 mr-0.5" />
+                                          Verified
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Status badge */}
+                                    <div className="mb-2">
+                                      {claim.status === "pending" && (
+                                        <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                                          <Clock className="w-3 h-3 mr-1" />
+                                          Pending Review
+                                        </Badge>
+                                      )}
+                                      {claim.status === "approved" && (
+                                        <Badge className="bg-green-100 text-green-800 text-xs">
+                                          <Check className="w-3 h-3 mr-1" />
+                                          Approved
+                                        </Badge>
+                                      )}
+                                      {claim.status === "rejected" && (
+                                        <Badge className="bg-red-100 text-red-800 text-xs">
+                                          <X className="w-3 h-3 mr-1" />
+                                          Rejected
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Claim description preview */}
+                                    {claim.proof_description && (
+                                      <p className="text-xs text-gray-600 line-clamp-2 mb-2">
+                                        "{claim.proof_description}"
+                                      </p>
+                                    )}
+                                    
+                                    {/* Evidence indicator */}
+                                    {claim.evidence && claim.evidence.length > 0 && (
+                                      <div className="flex items-center gap-1 mb-2">
+                                        <FileText className="w-3 h-3 text-blue-500" />
+                                        <span className="text-xs text-blue-600">
+                                          {claim.evidence.length} evidence file(s)
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Actions for pending claims */}
+                                    {claim.status === "pending" && (
+                                      <div className="flex gap-2 mt-2">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="flex-1 text-xs h-7"
+                                          onClick={() => {
+                                            setSelectedClaim(claim)
+                                            setReviewDialogOpen(true)
+                                          }}
+                                        >
+                                          <Eye className="w-3 h-3 mr-1" />
+                                          Review
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          className="bg-green-600 hover:bg-green-700 h-7 px-2"
+                                          onClick={() => handleClaimAction(claim.id, "approve")}
+                                        >
+                                          <Check className="w-3 h-3" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-red-600 border-red-200 hover:bg-red-50 h-7 px-2"
+                                          onClick={() => handleClaimAction(claim.id, "reject")}
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <ClaimItemDialog listingId={listing.id as string} listingTitle={listing.title} />
                   )}
                 </CardContent>
               </Card>
+
+              {/* Claim Review Dialog */}
+              {selectedClaim && (
+                <ClaimReviewDialog
+                  claim={{
+                    ...selectedClaim,
+                    item: {
+                      id: listing.id,
+                      title: listing.title,
+                      type: listing.type,
+                      status: listing.status,
+                    }
+                  }}
+                  open={reviewDialogOpen}
+                  onOpenChange={(open) => {
+                    setReviewDialogOpen(open)
+                    if (!open) setSelectedClaim(null)
+                  }}
+                  onClaimUpdated={fetchClaims}
+                />
+              )}
 
               <Card className="bg-[#F5F5F5] border-[#D4D4D4] shadow-sm">
                 <CardHeader className="pb-3">
